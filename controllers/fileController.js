@@ -107,7 +107,6 @@ exports.fileDownload = async (req, res, next) =>{
         }
         else if(userType == "Doctor")
         {
-            console.log("test");
             isValidUser = await Doctor.findOne({_id :  _id});
         }
         else if(userType == "Clinic")
@@ -158,13 +157,17 @@ exports.fileDelete = async (req, res, next) =>{
         }
         if(isValidUser)
         {
-            const fileId = await File.findOne({fileS3_Key: fileS3_Key});
-            if(!fileId)
+            const fileExists = await File.findOne({fileS3_Key: fileS3_Key});
+            if(!fileExists)
             {
                 return res.status(400).send("File not found in database");
             }
-            await File.deleteOne({_id: fileId});
-            //TODO: User validation to be added
+            if(fileExists.user._id != _id)
+            {
+                return res.status(400).send("Invalid user");
+            }
+
+            await File.deleteOne({_id: fileExists});
             let s3bucket = new AWS.S3({
                 accessKeyId: process.env.AWS_ACCESS_KEY_ID,
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -181,7 +184,7 @@ exports.fileDelete = async (req, res, next) =>{
             })
             return res.json({
                 success: true,
-                message: "Successfully Created File"
+                message: "Successfully Deleted File"
             });
         }
         else
@@ -190,5 +193,6 @@ exports.fileDelete = async (req, res, next) =>{
         }
     } catch (error) {
         console.log(error);
+        
     }
 }
