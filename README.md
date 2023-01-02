@@ -5,3 +5,4 @@ Requirements:
 4. User downloads the file from the website.
 5. Doctor should be able to access files of the patients who make an appointment with the doctor.
 6. Doctors should be able to see various reports and graphs on dashboard. Scope for reports and dashboard is TBD.
+7. File delete, update, download added
