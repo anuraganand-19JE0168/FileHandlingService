@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const Patient = require('./PatientModel');
 const FileModelSchema = new Schema(
     {
         fileType: {
@@ -27,7 +28,14 @@ const FileModelSchema = new Schema(
                 type: String,
                 required: true
             }
-        }
+        },
+        allowedUsers: [
+            {
+                userId: {
+                    type: Schema.Types.ObjectId,
+                }
+            }
+        ]
         //user can voluntarily provide access. Doctor can request for access
     },
     { timestamps: true }

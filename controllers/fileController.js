@@ -42,7 +42,21 @@ exports.fileUpload = async (req, res, next) => {
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
                 region: process.env.AWS_REGION
             });
-
+            var allowedUsers = [];
+            if(userType == "Doctor" || userType == "Clinic")
+            {
+                const {patientId} =  req.body;
+                if(!patientId)
+                {
+                    return res.status(400).send("Patient Id is required");
+                }
+                const isValidPatient = await Patient.findOne({_id: patientId});
+                if(!isValidPatient)
+                {
+                    return res.status(400).send("Valid Patient Id is required");
+                }
+                allowedUsers.push({userId: patientId});
+            }
             var params = {
                 Bucket: process.env.AWS_BUCKET_NAME,
                 Key: 'File/' + Date.now().toString(),
@@ -66,7 +80,9 @@ exports.fileUpload = async (req, res, next) => {
                         fileUrl: s3FileURL + params.Key,
                         fileS3_Key: params.Key,
                         user: { _id: _id , userType: userType},
+                        allowedUsers: allowedUsers
                     })
+                    
                     File.create(newFile, function(error, item){
                         if(error){
                             console.log(error);
@@ -92,6 +108,7 @@ exports.fileUpload = async (req, res, next) => {
         }
     } catch (error) {
         console.log(error);
+        return res.status(500).send("Server error");
     }
 }
 
@@ -115,6 +132,22 @@ exports.fileDownload = async (req, res, next) =>{
         }
         if(isValidUser)
         {
+            var isValidFile = await File.findOne({fileS3_Key: fileS3_Key});
+            if(!isValidFile)
+            {
+                return res.status(400).send("File not found");
+            }
+            var isAllowedUser = false;
+            isValidFile.allowedUsers.map((item)=>{
+                if(item.userId == _id)
+                {
+                    isAllowedUser = true;
+                }
+            })
+            if(!isAllowedUser)
+            {
+                return res.status(400).send("File access not available");
+            }
             let s3bucket = new AWS.S3({
                 accessKeyId: process.env.AWS_ACCESS_KEY_ID,
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -131,10 +164,11 @@ exports.fileDownload = async (req, res, next) =>{
         }
         else
         {
-            res.status(400).send("User not registered");
+            return res.status(400).send("User not registered");
         }
     } catch (error) {
         console.log(error);
+        return res.status(500).send("Server error");
     }
 }
 
@@ -193,6 +227,6 @@ exports.fileDelete = async (req, res, next) =>{
         }
     } catch (error) {
         console.log(error);
-        
+        return res.status(500).send("Server error");
     }
 }
